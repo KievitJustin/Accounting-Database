@@ -1,0 +1,97 @@
+import database
+import datetime
+
+menu = '''\nPlease choose one of the following:
+1. Add Client.
+2. Add Employee.
+3. Mark a Client's Tax Materials as Submitted
+4. Mark a Client's Tax Return as Filed
+5. Mark a Client's Tax Return as Checked
+6. View all Submitted Tax Materials
+7. View all Filed Tax Returns
+8. View all Checked Tax Returns
+9. Exit
+
+Your selection: '''
+welcome = "Welcome to the Accounting Database!"
+
+def prompt_add_client():
+    name = input("Client Last Name: ")
+    address = input("Client Address: ")
+    income = input("Client Income: ")
+    database.add_client(name, address, income)
+
+def prompt_add_employee():
+    name = input("Employee Last Name: ")
+    role = input("What is your position?\n1.) Assistant\n2.) Accountant\nEnter 1 or 2: ")
+    database.add_employee(name, role)
+
+def prompt_upload_materials():
+    clients_id = input("Enter the ID associated with the Client: ")
+    watched_operation = database.upload_materials(clients_id)
+    if watched_operation:
+        print(f"Tax Materials associated with client ID:{clients_id} have been submitted. ")
+    else:
+        print(f"Client with ID {clients_id} does not exist. ")
+
+def prompt_file_tax_return():
+    clients_id = input("Enter the ID associated with the Client: ")
+    date_filed = input("Enter the date the return was filed  (mm-dd-YYYY): ")
+    try:
+        date_object = datetime.datetime.strptime(date_filed, "%m-%d-%Y")
+        date_filed = date_object.timestamp()
+    except ValueError:
+        print("Date format invalid. Try again.")
+        return None
+    watched_operation = database.file_returns(clients_id, date_filed)
+    if watched_operation:
+        print(f"Tax Return associated with Client ID {clients_id} was marked as filed on {date_filed}. ")
+    else:
+        print(f"Client with ID {clients_id} does not exist. ")
+
+def prompt_check_tax_return():
+    clients_id = input("Enter the ID associated with the Client: ")
+    checked_by = input("Enter the ID associated with the employee who checked: ")
+    watched_operation = database.check_returns(clients_id, checked_by)
+    if watched_operation:
+        print(f"Tax Return associated with Client ID {clients_id} was marked as checked by Employee Identification #{checked_by}.")
+    else:
+        print(f"Client with ID {clients_id} does not exist. ")
+
+def prompt_view_submissions(submissions):
+    for id, clients_id in submissions:
+        print(f'Submission ID: #{id}, Client ID: #{clients_id}')
+
+def prompt_view_filed(filed):
+    for id, clients_id, date_filed, in filed:
+        print(f'File ID: #{id}, Client ID: #{clients_id}, Date filed: {date_filed}')
+
+def prompt_view_checked(checked):
+    for id, clients_id, employee_id, in checked:
+        print(f'Review ID: #{id}, Client ID: #{clients_id}, Checked by Employee ID: #{employee_id}')
+
+print(welcome)
+database.create_tables()
+
+while (user_input := input(menu)) != "9":
+    if user_input == "1":
+        prompt_add_client()
+    elif user_input == "2":
+        prompt_add_employee()
+    elif user_input == "3":
+        prompt_upload_materials()
+    elif user_input == "4":
+        prompt_file_tax_return()
+    elif user_input == "5":
+        prompt_check_tax_return()
+    elif user_input == "6":
+        all_submissions = database.view_submissions()
+        prompt_view_submissions(all_submissions)
+    elif user_input == "7":
+        all_filed = database.view_filed()
+        prompt_view_filed(all_filed)
+    elif user_input == "8":
+        all_checked = database.view_checked()
+        prompt_view_checked(all_checked)
+    else:
+        print("Invalid input. please try again.")
