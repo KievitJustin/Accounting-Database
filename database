@@ -1,0 +1,140 @@
+import os
+import psycopg2
+import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CREATE_CLIENTS_TABLE = '''CREATE TABLE IF NOT EXISTS clients (
+    id SERIAL PRIMARY KEY,
+    name TEXT,
+    address TEXT,
+    income TEXT
+    );'''
+
+CREATE_EMPLOYEES_TABLE = '''CREATE TABLE IF NOT EXISTS employees (
+    id SERIAL PRIMARY KEY,
+    name TEXT,
+    role TEXT
+    );'''
+
+CREATE_UPLOADED_TABLE = '''CREATE TABLE IF NOT EXISTS uploaded (
+    id SERIAL PRIMARY KEY,
+    clients_id INTEGER,
+    FOREIGN KEY(clients_id) REFERENCES clients(id));'''
+
+CREATE_FILED_TABLE = '''CREATE TABLE IF NOT EXISTS filed (
+    id SERIAL PRIMARY KEY,
+    clients_id INTEGER,
+    date_filed REAL,
+    FOREIGN KEY(clients_id) REFERENCES clients(id));'''
+
+CREATE_CHECKED_TABLE = '''CREATE TABLE IF NOT EXISTS checked (
+    id SERIAL PRIMARY KEY,
+    clients_id INTEGER,
+    employees_id INTEGER,
+    FOREIGN KEY(clients_id) REFERENCES clients(id),
+    FOREIGN KEY(employees_id) REFERENCES employees(id));'''
+
+CREATE_TAX_INFO_TABLE = '''CREATE TABLE IF NOT EXISTS tax_info (
+    id SERIAL PRIMARY KEY,
+    uploaded_id INTEGER,
+    employees_id INTEGER,
+    employees_id INTEGER,
+
+    FOREIGN KEY(clients_id) REFERENCES clients(id),
+    FOREIGN KEY(employees_id) REFERENCES employees(id));'''
+
+INSERT_EMPLOYEE = "INSERT INTO employees(name, role) VALUES (%s,%s);"
+INSERT_CLIENT = "INSERT INTO clients(name, address, income) VALUES (%s,%s,%s);"
+INSERT_UPLOADED_MATERIAL = "INSERT INTO uploaded(clients_id) VALUES (%s);"
+INSERT_FILED_RETURN = "INSERT INTO filed(clients_id, date_filed) VALUES (%s,%s);"
+INSERT_CHECKED_RETURN = "INSERT INTO checked(clients_id, employees_id) VALUES (%s,%s);"
+
+
+SELECT_CHECKED = "SELECT * FROM checked;"
+SELECT_FILED = "SELECT * FROM filed;"
+SELECT_SUBMISSIONS = "SELECT * FROM uploaded;"
+
+CHECK_CLIENT_EXISTS = "SELECT * FROM clients WHERE id = %s;"
+
+connection = psycopg2.connect(os.environ['DATABASE_URL'])
+
+def normalize_username(username):
+    # put other norms here.
+    return username.lower()
+
+def create_tables():
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(CREATE_CLIENTS_TABLE)
+        cursor.execute(CREATE_EMPLOYEES_TABLE)
+        cursor.execute(CREATE_UPLOADED_TABLE)
+        cursor.execute(CREATE_FILED_TABLE)
+        cursor.execute(CREATE_CHECKED_TABLE)
+
+def add_client(name, address, income):
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(INSERT_CLIENT, (name, address, income))
+
+def add_employee(name, role):
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(INSERT_EMPLOYEE, (name, role))
+
+def upload_materials(clients_id):
+    if client_exists(clients_id):
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute(INSERT_UPLOADED_MATERIAL, (clients_id,))
+        return True
+    else:
+        return False
+
+def file_returns(clients_id, date_filed):
+    if client_exists(clients_id):
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute(INSERT_FILED_RETURN, (clients_id, date_filed,))
+        return True
+    else:
+        return False
+
+def check_returns(clients_id, employees_id):
+    if client_exists(clients_id):
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute(INSERT_CHECKED_RETURN, (clients_id, employees_id,))
+        return True
+    else:
+        return False
+
+def client_exists(clients_id):
+    if clients_id.isnumeric():
+        cursor = connection.cursor()
+        cursor.execute(CHECK_CLIENT_EXISTS, (clients_id,))
+        if cursor.fetchone() is not None:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def view_submissions():
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(SELECT_SUBMISSIONS)
+        return cursor.fetchall()
+
+def view_filed():
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(SELECT_FILED)
+        return cursor.fetchall()
+
+def view_checked():
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(SELECT_CHECKED)
+        return cursor.fetchall()
